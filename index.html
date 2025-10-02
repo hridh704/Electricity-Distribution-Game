@@ -6,390 +6,755 @@
   <title>Power Grid Director</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Custom styles */
     body {
+      box-sizing: border-box;
       font-family: 'Courier New', Courier, monospace;
-      background-color: #030712; /* bg-gray-950 */
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      min-height: 100vh;
     }
+    
     .game-container {
-      background-color: #1a1a2e;
-      border: 4px solid #16213e;
-      border-radius: 40px;
-      padding: 30px;
-      box-shadow: 0 0 30px rgba(27, 94, 208, 0.3), inset 0 0 15px rgba(0,0,0,0.7);
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      border: 4px solid #3b82f6;
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 0 50px rgba(59, 130, 246, 0.3), inset 0 0 20px rgba(0,0,0,0.5);
       width: 100%;
-      max-width: 900px;
-      margin: auto;
-      transition: opacity 0.5s ease-in-out;
+      max-width: 1400px;
+      margin: 20px auto;
     }
-    .tv-screen {
-      background-color: #0f172a; /* slate-900 */
-      color: #90ee90;
-      border-radius: 20px;
+    
+    .status-bar {
+      background: linear-gradient(90deg, #1e293b 0%, #334155 100%);
+      padding: 30px;
+      margin-bottom: 30px;
+      border-radius: 16px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 30px;
+      text-align: center;
+      border: 2px solid #475569;
+    }
+    
+    .status-item {
       padding: 20px;
-      height: 400px;
-      border: 3px solid #1e293b; /* slate-800 */
-      box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 12px;
+      border: 1px solid #475569;
+    }
+    
+    .control-section {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+    
+    .control-panel {
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      border-radius: 20px;
+      padding: 40px;
+      border: 2px solid #475569;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    .event-log-container {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      border-radius: 20px;
+      padding: 30px;
+      border: 2px solid #475569;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    /* Sector Card Styles */
+    .sector-card {
       position: relative;
       overflow: hidden;
     }
     
-    /* SVG Pipe Styles */
-    .pipe-casing path { stroke: #4b5563; stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; fill: none; }
-    .junction-box rect { fill: #374151; stroke: #1f2937; stroke-width: 2; }
-    .wire-main path { stroke: #3b82f6; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px #60a5fa); opacity: 0.5; }
-
-    /* Wire styles for power flow inside pipes */
-    .wire { stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: all 0.3s ease; }
-    .wire.residential, .wire.industrial { stroke: #facc15; } /* yellow-400 */
-    .wire.hospitals { stroke: #60a5fa; } /* blue-400 */
-    .wire-low { stroke: #ef4444 !important; stroke-width: 2; opacity: 0.8; stroke-dasharray: 4; animation: flicker 0.5s infinite; }
-    .wire-medium { stroke-width: 4; opacity: 0.9; }
-    .wire-high { stroke-width: 6; filter: drop-shadow(0 0 5px #60a5fa) drop-shadow(0 0 8px #fff); animation: pulse 1.5s infinite; opacity: 1; }
+    .sector-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
     
-    /* Schematic layout styles */
-    .sector-box { fill: #4b5563; stroke: #6b7280; stroke-width: 2; transition: all 0.3s ease; }
-    .sector-text { text-anchor: middle; dominant-baseline: central; fill: #d1d5db; font-size: 16px; font-weight: bold; pointer-events: none; }
-    .power-plant-box { fill: #f59e0b; stroke: #d97706; }
-    .power-plant-text { text-anchor: middle; dominant-baseline: central; fill: #111827; font-size: 16px; font-weight: bold; }
-    .sector-icon { cursor: pointer; }
-    .sector-icon .sector-box { opacity: 0.8; }
-    .sector-icon:hover .sector-box { opacity: 1; stroke: #9ca3af; }
-    .sector-icon-powered .sector-box { fill: #52525b; stroke: #3b82f6; filter: drop-shadow(0 0 6px #60a5fa); opacity: 1; }
-    .sector-icon-powered:hover .sector-box { filter: drop-shadow(0 0 10px #93c5fd); }
+    .sector-card:hover::before {
+      left: 100%;
+    }
     
-    @keyframes pulse { 0%, 100% { filter: drop-shadow(0 0 5px #60a5fa) drop-shadow(0 0 8px #fff); } 50% { filter: drop-shadow(0 0 12px #93c5fd) drop-shadow(0 0 15px #fff); } }
+    .sector-card.offline {
+      opacity: 0.6;
+      filter: grayscale(50%);
+      border-color: #ef4444 !important;
+    }
+    
+    .sector-card.offline .animate-pulse {
+      background-color: #ef4444 !important;
+    }
+    
+    @keyframes pulse { 0%, 100% { filter: drop-shadow(0 0 8px currentColor); } 50% { filter: drop-shadow(0 0 16px currentColor); } }
     @keyframes flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    @keyframes alertBlink { 0%, 100% { background-color: #dc2626; } 50% { background-color: #991b1b; } }
     
-    /* Modals */
-    .modal { background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); }
-    .modal-content { background-color: #0f172a; color: #e2e8f0; border: 2px solid #1e293b; box-shadow: 0 0 25px rgba(27, 94, 208, 0.5); }
-
-    /* Tooltip */
-    #tooltip { position: fixed; background-color: rgba(17, 24, 39, 0.9); border: 1px solid #4b5563; color: #d1d5db; padding: 10px; border-radius: 8px; z-index: 100; pointer-events: none; transition: opacity 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-
+    .alert-critical { animation: alertBlink 1s infinite; }
+    
+    /* Enhanced button styles */
+    .control-button {
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    
+    .control-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    }
+    
     /* Custom slider styles */
-    input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+    input[type=range] { 
+      -webkit-appearance: none; 
+      width: 100%; 
+      background: transparent; 
+      height: 12px;
+      border-radius: 6px;
+      background: #334155;
+      border: 2px solid #475569;
+    }
     input[type=range]:focus { outline: none; }
-    input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 10px; cursor: pointer; background: #334155; border-radius: 5px; border: 1px solid #1e293b; }
-    input[type=range]::-moz-range-track { width: 100%; height: 10px; cursor: pointer; background: #334155; border-radius: 5px; border: 1px solid #1e293b; }
-    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%; background: #94a3b8; cursor: pointer; margin-top: -8px; border: 2px solid #1e293b; box-shadow: 0 0 5px rgba(0,0,0,0.5); transition: background 0.2s ease; }
-    input[type=range]::-moz-range-thumb { height: 24px; width: 24px; border-radius: 50%; background: #94a3b8; cursor: pointer; border: 2px solid #1e293b; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
-    input[type=range]:hover::-webkit-slider-thumb { background: #cbd5e1; }
+    input[type=range]::-webkit-slider-thumb { 
+      -webkit-appearance: none; 
+      height: 28px; 
+      width: 28px; 
+      border-radius: 50%; 
+      background: #3b82f6; 
+      cursor: pointer; 
+      border: 3px solid #1e40af;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
     
-    .btn-3d { transition: all .1s linear; position: relative; outline: none; border: 0; padding: 10px 20px; border-radius: 8px; font-weight: bold; }
-    .btn-3d:active { top: 3px; }
-    .btn-green { background-color: #22c55e; box-shadow: 0px 5px 0px 0px #15803d; color: white; }
-    .btn-green:active { box-shadow: 0px 2px 0px 0px #15803d; }
-    .btn-blue { background-color: #3b82f6; box-shadow: 0px 5px 0px 0px #1d4ed8; color: white; }
-    .btn-blue:active { box-shadow: 0px 2px 0px 0px #1d4ed8; }
-    .btn-disabled { background-color: #64748b; box-shadow: 0px 5px 0px 0px #475569; cursor: not-allowed; color: #cbd5e1; }
-    .btn-disabled:active { top: 0px; box-shadow: 0px 5px 0px 0px #475569; }
+    /* Modal styles */
+    .modal { background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); }
+    .modal-content { 
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); 
+      color: #e2e8f0; 
+      border: 3px solid #3b82f6; 
+      box-shadow: 0 0 50px rgba(59, 130, 246, 0.5);
+      border-radius: 20px;
+    }
+    
+    /* Tooltip */
+    #tooltip { 
+      position: fixed; 
+      background: linear-gradient(135deg, #1f2937 0%, #374151 100%); 
+      border: 2px solid #60a5fa; 
+      color: #d1d5db; 
+      padding: 16px; 
+      border-radius: 12px; 
+      z-index: 100; 
+      pointer-events: none; 
+      transition: opacity 0.2s; 
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      font-size: 14px;
+    }
   </style>
 </head>
-<body class="bg-gray-950 text-white flex items-center justify-center min-h-screen p-4">
+<body class="min-h-screen p-6">
+<div class="game-container">
+  <!-- Header -->
+  <div class="text-center mb-8">
+    <h1 class="text-6xl font-bold text-blue-400 mb-4">⚡ POWER GRID DIRECTOR ⚡</h1>
+    <p class="text-xl text-gray-300">Advanced Electrical Infrastructure Management System</p>
+  </div>
 
-  <div id="gameUI" class="game-container hidden">
-    <div class="tv-screen mb-6">
-        <svg id="city-layout" width="100%" height="100%" viewBox="0 0 800 350">
-            <!-- Wires (will be colored by class) -->
-            <path id="wire-residential" class="wire residential" d="M 250 100 V 180 H 150 V 220" />
-            <path id="wire-hospitals" class="wire hospitals" d="M 400 100 V 220" />
-            <path id="wire-industrial" class="wire industrial" d="M 550 100 V 180 H 650 V 220" />
-        
-            <!-- Main Bus (on top of wires) -->
-            <g class="pipe-casing"> <path d="M 200 100 H 600" /> <path d="M 400 60 V 100" /> </g>
-            <g class="wire-main"> <path d="M 200 100 H 600" /> <path d="M 400 60 V 100" /> </g>
-            
-            <!-- Junctions -->
-            <g class="junction-box"> <rect x="390" y="90" width="20" height="20" rx="3"></rect> <rect x="240" y="90" width="20" height="20" rx="3"></rect> <rect x="540" y="90" width="20" height="20" rx="3"></rect> </g>
-
-            <!-- Nodes -->
-            <g transform="translate(350, 20)"> <rect class="sector-box power-plant-box" width="100" height="40" rx="5"></rect> <text class="power-plant-text" x="50" y="20">POWER</text> </g>
-            <g id="icon-residential" class="sector-icon" transform="translate(100, 220)"> <rect class="sector-box" width="100" height="40" rx="5"></rect> <text class="sector-text" x="50" y="20">Residential</text> </g>
-            <g id="icon-hospitals" class="sector-icon" transform="translate(350, 220)"> <rect class="sector-box" width="100" height="40" rx="5"></rect> <text class="sector-text" x="50" y="20">Hospitals</text> </g>
-            <g id="icon-industrial" class="sector-icon" transform="translate(600, 220)"> <rect class="sector-box" width="100" height="40" rx="5"></rect> <text class="sector-text" x="50" y="20">Industrial</text> </g>
-        </svg>
-        <div id="loadingOverlay" class="absolute inset-0 bg-black/70 items-center justify-center text-2xl hidden">Contacting Emergency Broadcast System...</div>
+  <!-- Status Bar -->
+  <div class="status-bar text-white">
+    <div class="status-item">
+      <div class="text-gray-300 text-lg mb-2">Total Power</div>
+      <div id="totalPower" class="text-3xl font-bold text-green-400">1000 MW</div>
     </div>
-    <div class="controls-panel">
-      <div id="slidersContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6"></div>
-      <div class="bg-slate-800/50 p-4 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4">
-        <div class="grid grid-cols-2 md:grid-cols-2 gap-x-6 text-center md:text-left">
-            <div><h3 class="font-bold">Approval</h3><p id="approvalDisplay" class="font-bold text-xl text-green-400">75%</p></div>
-            <div class="col-span-2 md:col-span-1 mt-2 md:mt-0"><h3 class="font-bold">Power Status</h3><p><span id="allocatedPowerDisplay">0</span> / <span id="totalPowerDisplay">0</span> MW</p></div>
+    <div class="status-item">
+      <div class="text-gray-300 text-lg mb-2">Demand</div>
+      <div id="totalDemand" class="text-3xl font-bold text-yellow-400">750 MW</div>
+    </div>
+    <div class="status-item">
+      <div class="text-gray-300 text-lg mb-2">Efficiency</div>
+      <div id="efficiency" class="text-3xl font-bold text-blue-400">85%</div>
+    </div>
+    <div class="status-item">
+      <div class="text-gray-300 text-lg mb-2">Status</div>
+      <div id="systemStatus" class="text-3xl font-bold text-green-400">STABLE</div>
+    </div>
+  </div>
+
+  <!-- Power Plant Section -->
+  <div class="mb-8">
+    <div class="bg-gradient-to-r from-orange-600 to-yellow-600 rounded-2xl p-8 border-4 border-orange-400 shadow-2xl">
+      <div class="text-center">
+        <h2 class="text-4xl font-bold text-white mb-4">⚡ POWER PLANT</h2>
+        <div class="text-3xl font-bold text-white mb-2" id="plantOutput">1000 MW</div>
+        <div class="text-xl text-orange-100">STATUS: ONLINE</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sector Cards Grid -->
+  <div class="grid grid-cols-2 gap-8 mb-8">
+    <!-- Medical Sector Card -->
+    <div id="medical" class="sector-card bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-8 border-4 border-blue-400 shadow-2xl cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-blue-500/50" data-sector="medical">
+      <div class="text-center">
+        <div class="text-6xl mb-4">🏥</div>
+        <h3 class="text-3xl font-bold text-white mb-4">MEDICAL</h3>
+        <div class="bg-blue-900/50 rounded-lg p-4 mb-4">
+          <div class="text-2xl font-bold text-blue-200 mb-2" id="medDemand">150 MW</div>
+          <div class="text-lg text-blue-300">Current Load</div>
         </div>
-        <div id="controlButtons" class="flex gap-4">
-           <button id="distributeBtn" class="btn-3d btn-green">Distribute Power</button>
+        <div class="flex justify-between items-center">
+          <span class="text-red-300 font-semibold">Priority: CRITICAL</span>
+          <div class="w-4 h-4 rounded-full bg-green-400 animate-pulse" id="medStatus"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Residential Sector Card -->
+    <div id="residential" class="sector-card bg-gradient-to-br from-yellow-600 to-yellow-800 rounded-2xl p-8 border-4 border-yellow-400 shadow-2xl cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-yellow-500/50" data-sector="residential">
+      <div class="text-center">
+        <div class="text-6xl mb-4">🏠</div>
+        <h3 class="text-3xl font-bold text-white mb-4">RESIDENTIAL</h3>
+        <div class="bg-yellow-900/50 rounded-lg p-4 mb-4">
+          <div class="text-2xl font-bold text-yellow-200 mb-2" id="resDemand">200 MW</div>
+          <div class="text-lg text-yellow-300">Current Load</div>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-yellow-300 font-semibold">Priority: Normal</span>
+          <div class="w-4 h-4 rounded-full bg-green-400 animate-pulse" id="resStatus"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Industrial Sector Card -->
+    <div id="industrial" class="sector-card bg-gradient-to-br from-orange-600 to-orange-800 rounded-2xl p-8 border-4 border-orange-400 shadow-2xl cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-orange-500/50" data-sector="industrial">
+      <div class="text-center">
+        <div class="text-6xl mb-4">🏭</div>
+        <h3 class="text-3xl font-bold text-white mb-4">INDUSTRIAL</h3>
+        <div class="bg-orange-900/50 rounded-lg p-4 mb-4">
+          <div class="text-2xl font-bold text-orange-200 mb-2" id="indDemand">300 MW</div>
+          <div class="text-lg text-orange-300">Current Load</div>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-orange-300 font-semibold">Priority: Low</span>
+          <div class="w-4 h-4 rounded-full bg-green-400 animate-pulse" id="indStatus"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Commercial Sector Card -->
+    <div id="commercial" class="sector-card bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl p-8 border-4 border-purple-400 shadow-2xl cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-purple-500/50" data-sector="commercial">
+      <div class="text-center">
+        <div class="text-6xl mb-4">🏢</div>
+        <h3 class="text-3xl font-bold text-white mb-4">COMMERCIAL</h3>
+        <div class="bg-purple-900/50 rounded-lg p-4 mb-4">
+          <div class="text-2xl font-bold text-purple-200 mb-2" id="comDemand">100 MW</div>
+          <div class="text-lg text-purple-300">Current Load</div>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-purple-300 font-semibold">Priority: Low</span>
+          <div class="w-4 h-4 rounded-full bg-green-400 animate-pulse" id="comStatus"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modals -->
-  <div id="startModal" class="modal fixed inset-0 p-4 flex items-center justify-center">
-    <div class="modal-content p-8 rounded-lg max-w-2xl w-full text-center">
-      <h1 class="text-4xl font-bold mb-4 text-amber-400">High-Stakes Blackout</h1>
-      <p class="mb-6 text-slate-300">A solar flare has crippled the main grid. The city's emergency power is critically low, far below demand. You have one day to manage the crisis. Your decisions will determine the city's fate. If public approval collapses, you're fired! Good luck.</p>
-      <button id="startGameBtn" class="btn-3d btn-blue text-xl px-8 py-3">Begin Mission</button>
-    </div>
-  </div>
-
-  <div id="reportModal" class="modal fixed inset-0 p-4 items-center justify-center hidden">
-    <div class="modal-content p-6 rounded-lg max-w-2xl w-full">
-      <h2 id="reportHeadline" class="text-2xl font-bold mb-3"></h2>
-      <p id="reportSummary" class="mb-4 text-slate-300"></p>
-      <div class="text-lg font-bold">City Approval Change: <span id="approvalChangeDisplay"></span></div>
-      <button id="closeReportBtn" class="btn-3d btn-blue mt-6 float-right">Acknowledge</button>
-    </div>
-  </div>
-
-  <div id="endModal" class="modal fixed inset-0 p-4 items-center justify-center hidden">
-    <div class="modal-content p-8 rounded-lg max-w-2xl w-full text-center">
-      <h1 id="endGameTitle" class="text-4xl font-bold mb-4"></h1>
-      <p id="endGameMessage" class="mb-6 text-slate-300"></p>
-      <button id="playAgainBtn" class="btn-3d btn-green text-xl px-8 py-3">Play Again</button>
-    </div>
-  </div>
-  
-  <div id="tooltip" class="hidden"></div>
-
-  <script type="module">
-    import { GoogleGenAI, Type } from "https://esm.run/@google/genai";
-
-    // --- STATE MANAGEMENT ---
-    const MAX_DAYS = 1; // Single day scenario
-    let state = {};
-
-    function getInitialState() {
-      return {
-        sectors: [], totalPower: 0, isLoading: false, day: 1, cityApproval: 75,
-        isGameStarted: false, isGameOver: false, gameOutcome: '', ai: state.ai // Preserve AI instance
-      };
-    }
-
-    // --- DOM ELEMENTS ---
-    const ui = {
-      gameUI: document.getElementById('gameUI'),
-      slidersContainer: document.getElementById('slidersContainer'),
-      totalPowerDisplay: document.getElementById('totalPowerDisplay'),
-      allocatedPowerDisplay: document.getElementById('allocatedPowerDisplay'),
-      approvalDisplay: document.getElementById('approvalDisplay'),
-      distributeBtn: document.getElementById('distributeBtn'),
-      loadingOverlay: document.getElementById('loadingOverlay'),
-      tooltip: document.getElementById('tooltip'),
+  <!-- Control Section -->
+  <div class="control-section">
+    <!-- Control Panel -->
+    <div class="control-panel">
+      <h3 class="text-3xl font-bold text-blue-400 mb-8">🎛️ CONTROL PANEL</h3>
       
-      startModal: { root: document.getElementById('startModal'), startBtn: document.getElementById('startGameBtn') },
-      reportModal: { root: document.getElementById('reportModal'), headline: document.getElementById('reportHeadline'), summary: document.getElementById('reportSummary'), approvalChange: document.getElementById('approvalChangeDisplay'), closeBtn: document.getElementById('closeReportBtn') },
-      endModal: { root: document.getElementById('endModal'), title: document.getElementById('endGameTitle'), message: document.getElementById('endGameMessage'), playAgainBtn: document.getElementById('playAgainBtn') }
-    };
-
-    // --- API SERVICE ---
-    async function generateConsequenceReport() {
-      if (!state.ai) return { headline: "Comms Error", summary: "AI service not available.", approvalChange: -5 };
-
-      const prompt = `You are a city management AI. It's a critical, single-day blackout scenario. The city's emergency power is critically low, far below demand. Current city approval is ${state.cityApproval}%. Power allocation: ${state.sectors.map(s => `${s.name}: ${s.allocated} MW (Demand: ${s.demand} MW)`).join(', ')}. Analyze the severe impact of this distribution. Prioritize hospitals with extreme prejudice. Underpowering hospitals is a catastrophic failure leading to massive approval loss. Underpowering residences causes major discontent. Underpowering industry affects the economy but has the least impact on immediate approval. Provide a JSON response.`;
-      
-      try {
-        const response = await state.ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                headline: { type: Type.STRING, description: 'A single, impactful news headline (e.g., "CRISIS: Hospitals Go Dark").' },
-                summary: { type: Type.STRING, description: 'A one-sentence summary of the dire consequences.' },
-                approvalChange: { type: Type.INTEGER, description: 'An integer for the change in city approval (from -50 to +5). Penalize extremely heavily for underpowered hospitals.' },
-              }
-            }
-          }
-        });
-        const jsonText = response.text.trim();
-        return JSON.parse(jsonText);
-      } catch (error) {
-        console.error("Error generating report:", error);
-        return { headline: "Broadcast System Error", summary: "Critical systems may be failing. Public trust is wavering.", approvalChange: -15 };
-      }
-    }
-
-    // --- UI UPDATE FUNCTIONS ---
-    function render() {
-      if (!state.isGameStarted || state.isGameOver) { ui.gameUI.classList.add('hidden'); return; }
-      ui.gameUI.classList.remove('hidden');
-
-      ui.loadingOverlay.style.display = state.isLoading ? 'flex' : 'none';
-      ui.approvalDisplay.textContent = `${state.cityApproval}%`;
-      ui.approvalDisplay.className = `font-bold text-xl ${state.cityApproval < 30 ? 'text-red-400' : state.cityApproval < 60 ? 'text-yellow-400' : 'text-green-400'}`;
-      
-      updatePowerStatus();
-      renderSliders();
-      updateVisuals();
-    }
-
-    function renderSliders() {
-      ui.slidersContainer.innerHTML = state.sectors.map(sector => `
-        <div class="bg-slate-800/60 p-4 rounded-lg text-center">
-          <label for="${sector.id}" class="block text-lg font-semibold mb-2">${sector.name}</label>
-          <input type="range" id="${sector.id}" name="${sector.id}" min="0" max="${state.totalPower}" value="${sector.allocated}" class="w-full">
-          <p class="mt-2"><span id="${sector.id}-value" class="font-bold text-xl">${sector.allocated}</span> MW / <span class="text-sm">Demand: ${sector.demand} MW</span></p>
+      <div class="grid grid-cols-2 gap-8 mb-8">
+        <div>
+          <label class="block text-lg font-medium text-gray-300 mb-4">Power Generation</label>
+          <input type="range" id="powerSlider" min="500" max="1500" value="1000" class="w-full mb-4">
+          <div class="text-center text-lg text-gray-400"><span id="powerValue">1000</span> MW</div>
         </div>
-      `).join('');
-      attachSliderListeners();
-    }
-    
-    function updatePowerStatus() {
-        const allocatedPower = state.sectors.reduce((total, sector) => total + sector.allocated, 0);
-        ui.totalPowerDisplay.textContent = state.totalPower;
-        ui.allocatedPowerDisplay.textContent = allocatedPower;
-        const isOverallocated = allocatedPower > state.totalPower;
-        ui.allocatedPowerDisplay.classList.toggle('text-red-400', isOverallocated);
-        ui.distributeBtn.disabled = isOverallocated || state.isLoading;
-        ui.distributeBtn.classList.toggle('btn-disabled', isOverallocated || state.isLoading);
-        ui.distributeBtn.classList.toggle('btn-green', !isOverallocated && !state.isLoading);
-    }
-    
-    function updateVisuals() {
-        state.sectors.forEach(sector => {
-            const wire = document.getElementById(`wire-${sector.id}`);
-            const icon = document.getElementById(`icon-${sector.id}`);
-            if (!wire || !icon) return;
-            const powerPercentage = sector.demand > 0 ? (sector.allocated / sector.demand) * 100 : 100;
-            wire.classList.remove('wire-low', 'wire-medium', 'wire-high');
-            if (powerPercentage < 40) wire.classList.add('wire-low');
-            else if (powerPercentage < 80) wire.classList.add('wire-medium');
-            else wire.classList.add('wire-high');
-            icon.classList.toggle('sector-icon-powered', powerPercentage >= 50);
-        });
-    }
-    
-    // --- EVENT LISTENERS ---
-    function attachSliderListeners() { state.sectors.forEach(sector => document.getElementById(sector.id)?.addEventListener('input', (e) => handleSliderChange(sector.id, parseInt(e.target.value, 10)))); }
-    function attachIconListeners() { document.querySelectorAll('.sector-icon').forEach(icon => icon.addEventListener('click', (e) => { e.stopPropagation(); const sectorId = icon.id.replace('icon-', ''); showTooltip(state.sectors.find(s => s.id === sectorId), e.clientX, e.clientY); })); document.body.addEventListener('click', hideTooltip); }
-    
-    // --- TOOLTIP LOGIC ---
-    function showTooltip(sector, x, y) {
-        if (!sector) return;
-        const powerPercentage = sector.demand > 0 ? (sector.allocated / sector.demand) * 100 : 100;
-        let status, statusClass;
-        if (powerPercentage < 40) { status = 'Critical'; statusClass = 'text-red-400'; } 
-        else if (powerPercentage < 80) { status = 'Stable'; statusClass = 'text-yellow-400'; } 
-        else { status = 'Optimal'; statusClass = 'text-green-400'; }
-        ui.tooltip.innerHTML = `<h4 class="font-bold text-lg border-b border-gray-600 pb-1 mb-2">${sector.name}</h4><p><strong>Demand:</strong> ${sector.demand} MW</p><p><strong>Allocated:</strong> ${sector.allocated} MW</p><p><strong>Status:</strong> <span class="${statusClass} font-bold">${status}</span></p>`;
-        ui.tooltip.style.left = `${x + 15}px`; ui.tooltip.style.top = `${y + 15}px`; ui.tooltip.classList.remove('hidden');
-    }
-    function hideTooltip() { ui.tooltip.classList.add('hidden'); }
+        <div>
+          <label class="block text-lg font-medium text-gray-300 mb-4">Load Distribution</label>
+          <select id="loadMode" class="w-full bg-slate-700 text-white rounded-lg px-4 py-3 border-2 border-slate-600 text-lg">
+            <option value="auto">Auto Balance</option>
+            <option value="priority">Priority Mode</option>
+            <option value="manual">Manual Control</option>
+          </select>
+        </div>
+      </div>
 
-    // --- GAME LOGIC ---
-    function handleSliderChange(id, value) {
-      state.sectors = state.sectors.map(s => s.id === id ? { ...s, allocated: value } : s);
-      document.getElementById(`${id}-value`).textContent = value;
-      updatePowerStatus(); updateVisuals();
+      <div class="mb-8">
+        <h4 class="text-xl font-semibold text-gray-300 mb-6">Sector Management</h4>
+        <div class="grid grid-cols-2 gap-6">
+          <button id="toggleRes" class="control-button bg-green-600 hover:bg-green-700 text-white">🏠 Residential</button>
+          <button id="toggleInd" class="control-button bg-green-600 hover:bg-green-700 text-white">🏭 Industrial</button>
+          <button id="toggleMed" class="control-button bg-green-600 hover:bg-green-700 text-white">🏥 Medical</button>
+          <button id="toggleCom" class="control-button bg-green-600 hover:bg-green-700 text-white">🏢 Commercial</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-6">
+        <button id="emergencyShutdown" class="control-button bg-red-600 hover:bg-red-700 text-white">🚨 EMERGENCY</button>
+        <button id="resetGrid" class="control-button bg-green-600 hover:bg-green-700 text-white">🔄 RESET GRID</button>
+        <button id="generateReport" class="control-button bg-purple-600 hover:bg-purple-700 text-white">📊 REPORT</button>
+      </div>
+    </div>
+
+    <!-- Event Log -->
+    <div class="event-log-container">
+      <h4 class="text-xl font-bold text-green-400 mb-6">📋 SYSTEM LOG</h4>
+      <div id="eventLog" class="h-96 overflow-y-auto text-green-300 font-mono text-sm space-y-2">
+        <div>[00:00] System initialized - All sectors online</div>
+        <div>[00:01] Power generation stable at 1000 MW</div>
+        <div>[00:02] Grid efficiency at 85% - Normal operation</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tooltip -->
+<div id="tooltip" style="display: none;"></div>
+
+<!-- Efficiency Report Modal -->
+<div id="reportModal" class="modal fixed inset-0 z-50 hidden items-center justify-center">
+  <div class="modal-content p-12 max-w-4xl w-full mx-6 max-h-[80vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-8">
+      <h2 class="text-4xl font-bold text-blue-400">📊 GRID EFFICIENCY REPORT</h2>
+      <button id="closeReport" class="text-gray-400 hover:text-white text-4xl">&times;</button>
+    </div>
+    <div id="reportContent" class="space-y-6"></div>
+    <div class="mt-8 text-center">
+      <button id="closeReportBtn" class="control-button bg-blue-600 hover:bg-blue-700 text-white">Close Report</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Game State
+let gameState = {
+  powerGeneration: 1000,
+  sectors: {
+    residential: { demand: 200, active: true, priority: 1 },
+    industrial: { demand: 300, active: true, priority: 2 },
+    medical: { demand: 150, active: true, priority: 0 },
+    commercial: { demand: 100, active: true, priority: 3 }
+  },
+  loadMode: 'auto',
+  emergencyMode: false,
+  time: 0,
+  performance: {
+    emergencyShutdowns: 0,
+    powerAdjustments: 0,
+    sectorToggleCount: 0,
+    criticalEvents: 0,
+    wastedPower: 0,
+    startTime: Date.now(),
+    efficiencyHistory: []
+  }
+};
+
+// DOM Elements
+const powerSlider = document.getElementById('powerSlider');
+const powerValue = document.getElementById('powerValue');
+const loadMode = document.getElementById('loadMode');
+const eventLog = document.getElementById('eventLog');
+const tooltip = document.getElementById('tooltip');
+
+// Initialize game
+function initGame() {
+  updateDisplay();
+  startGameLoop();
+  setupEventListeners();
+  logEvent('Grid Director system online - Welcome!');
+}
+
+// Setup event listeners
+function setupEventListeners() {
+  powerSlider.addEventListener('input', (e) => {
+    gameState.powerGeneration = parseInt(e.target.value);
+    powerValue.textContent = gameState.powerGeneration;
+    gameState.performance.powerAdjustments++;
+    updateDisplay();
+    logEvent(`Power generation adjusted to ${gameState.powerGeneration} MW`);
+  });
+
+  loadMode.addEventListener('change', (e) => {
+    gameState.loadMode = e.target.value;
+    logEvent(`Load balancing mode: ${e.target.value}`);
+    updateDisplay();
+  });
+
+  // Sector controls
+  document.getElementById('toggleRes').addEventListener('click', () => toggleSector('residential'));
+  document.getElementById('toggleInd').addEventListener('click', () => toggleSector('industrial'));
+  document.getElementById('toggleMed').addEventListener('click', () => toggleSector('medical'));
+  document.getElementById('toggleCom').addEventListener('click', () => toggleSector('commercial'));
+
+  // Emergency controls
+  document.getElementById('emergencyShutdown').addEventListener('click', emergencyShutdown);
+  document.getElementById('resetGrid').addEventListener('click', resetGrid);
+  document.getElementById('generateReport').addEventListener('click', generateEfficiencyReport);
+
+  // Modal controls
+  document.getElementById('closeReport').addEventListener('click', closeReportModal);
+  document.getElementById('closeReportBtn').addEventListener('click', closeReportModal);
+
+  // Sector card hover effects
+  document.querySelectorAll('.sector-card').forEach(card => {
+    card.addEventListener('mouseenter', (e) => showTooltip(e, card.dataset.sector));
+    card.addEventListener('mouseleave', hideTooltip);
+    card.addEventListener('click', () => toggleSector(card.dataset.sector));
+  });
+}
+
+// Toggle sector power
+function toggleSector(sectorName) {
+  gameState.sectors[sectorName].active = !gameState.sectors[sectorName].active;
+  gameState.performance.sectorToggleCount++;
+  const status = gameState.sectors[sectorName].active ? 'ONLINE' : 'OFFLINE';
+  logEvent(`${sectorName.toUpperCase()} sector ${status}`);
+  updateDisplay();
+}
+
+// Emergency shutdown
+function emergencyShutdown() {
+  gameState.emergencyMode = true;
+  gameState.performance.emergencyShutdowns++;
+  gameState.performance.criticalEvents++;
+  Object.keys(gameState.sectors).forEach(sector => {
+    if (sector !== 'medical') {
+      gameState.sectors[sector].active = false;
     }
+  });
+  gameState.powerGeneration = 200;
+  powerSlider.value = 200;
+  powerValue.textContent = '200';
+  logEvent('🚨 EMERGENCY SHUTDOWN - Only critical systems online');
+  updateDisplay();
+}
+
+// Reset grid
+function resetGrid() {
+  gameState.emergencyMode = false;
+  gameState.powerGeneration = 1000;
+  Object.keys(gameState.sectors).forEach(sector => {
+    gameState.sectors[sector].active = true;
+  });
+  powerSlider.value = 1000;
+  powerValue.textContent = '1000';
+  logEvent('🔄 Grid reset - All systems restored');
+  updateDisplay();
+}
+
+// Update display
+function updateDisplay() {
+  const totalDemand = calculateTotalDemand();
+  const efficiency = calculateEfficiency();
+  const status = getSystemStatus();
+
+  // Track efficiency
+  gameState.performance.efficiencyHistory.push(efficiency);
+  if (gameState.performance.efficiencyHistory.length > 100) {
+    gameState.performance.efficiencyHistory.shift();
+  }
+  
+  // Track wasted power
+  if (gameState.powerGeneration > totalDemand) {
+    gameState.performance.wastedPower += (gameState.powerGeneration - totalDemand);
+  }
+
+  // Update status display
+  document.getElementById('totalPower').textContent = `${gameState.powerGeneration} MW`;
+  document.getElementById('totalDemand').textContent = `${totalDemand} MW`;
+  document.getElementById('efficiency').textContent = `${efficiency}%`;
+  document.getElementById('systemStatus').textContent = status;
+
+  // Update sector displays
+  document.getElementById('resDemand').textContent = `${gameState.sectors.residential.demand} MW`;
+  document.getElementById('indDemand').textContent = `${gameState.sectors.industrial.demand} MW`;
+  document.getElementById('medDemand').textContent = `${gameState.sectors.medical.demand} MW`;
+  document.getElementById('comDemand').textContent = `${gameState.sectors.commercial.demand} MW`;
+  document.getElementById('plantOutput').textContent = `${gameState.powerGeneration} MW`;
+
+  // Update status colors
+  const statusElement = document.getElementById('systemStatus');
+  statusElement.className = 'text-3xl font-bold';
+  if (status === 'CRITICAL') {
+    statusElement.classList.add('text-red-400', 'alert-critical');
+  } else if (status === 'WARNING') {
+    statusElement.classList.add('text-yellow-400');
+  } else {
+    statusElement.classList.add('text-green-400');
+  }
+
+  updateSectorVisuals();
+}
+
+// Calculate total demand
+function calculateTotalDemand() {
+  return Object.values(gameState.sectors)
+    .filter(sector => sector.active)
+    .reduce((total, sector) => total + sector.demand, 0);
+}
+
+// Calculate efficiency
+function calculateEfficiency() {
+  const totalDemand = calculateTotalDemand();
+  if (gameState.powerGeneration === 0) return 0;
+  
+  const ratio = totalDemand / gameState.powerGeneration;
+  if (ratio > 1) return Math.max(0, 100 - (ratio - 1) * 50);
+  return Math.min(100, 85 + (1 - ratio) * 15);
+}
+
+// Get system status
+function getSystemStatus() {
+  const totalDemand = calculateTotalDemand();
+  const ratio = totalDemand / gameState.powerGeneration;
+  
+  if (ratio > 1.2) return 'CRITICAL';
+  if (ratio > 0.95) return 'WARNING';
+  if (gameState.emergencyMode) return 'EMERGENCY';
+  return 'STABLE';
+}
+
+// Update sector visuals
+function updateSectorVisuals() {
+  Object.keys(gameState.sectors).forEach(sectorName => {
+    const sectorCard = document.getElementById(sectorName);
+    const statusIndicator = document.getElementById(sectorName.substring(0,3) + 'Status');
+    const isActive = gameState.sectors[sectorName].active;
     
-    async function handleDistributePower() {
-        if (ui.distributeBtn.disabled) return;
-        state.isLoading = true; ui.distributeBtn.style.display = 'none'; render();
-        
-        const report = await generateConsequenceReport();
-        state.isLoading = false; render();
-        
-        state.cityApproval = Math.max(0, state.cityApproval + report.approvalChange);
-        
-        ui.reportModal.headline.textContent = report.headline;
-        ui.reportModal.summary.textContent = report.summary;
-        ui.reportModal.approvalChange.textContent = `${report.approvalChange > 0 ? '+' : ''}${report.approvalChange}%`;
-        ui.reportModal.approvalChange.className = report.approvalChange < 0 ? 'text-red-400' : 'text-green-400';
-        ui.reportModal.root.style.display = 'flex';
-        
-        if (state.cityApproval <= 0) {
-            endGame('loss');
-        }
+    if (isActive) {
+      sectorCard.classList.remove('offline');
+      statusIndicator.className = 'w-4 h-4 rounded-full bg-green-400 animate-pulse';
+    } else {
+      sectorCard.classList.add('offline');
+      statusIndicator.className = 'w-4 h-4 rounded-full bg-red-400 animate-pulse';
     }
 
-    function closeReport() {
-        ui.reportModal.root.style.display = 'none';
-        if (state.isGameOver) return; // Already lost and end screen is queued
+    // Update button colors
+    const buttonMap = {
+      residential: 'toggleRes',
+      industrial: 'toggleInd',
+      medical: 'toggleMed',
+      commercial: 'toggleCom'
+    };
+    
+    const button = document.getElementById(buttonMap[sectorName]);
+    if (isActive) {
+      button.className = 'control-button bg-green-600 hover:bg-green-700 text-white';
+    } else {
+      button.className = 'control-button bg-red-600 hover:bg-red-700 text-white';
+    }
+  });
+}
 
-        // If approval is positive after the report, it's a win.
-        if (state.cityApproval > 0) {
-            endGame('win');
-        }
+// Show tooltip
+function showTooltip(e, sectorName) {
+  const sector = gameState.sectors[sectorName];
+  const status = sector.active ? 'ONLINE' : 'OFFLINE';
+  const content = `
+    <strong>${sectorName.toUpperCase()}</strong><br>
+    Demand: ${sector.demand} MW<br>
+    Status: ${status}<br>
+    Priority: ${sector.priority === 0 ? 'CRITICAL' : sector.priority}
+  `;
+  
+  tooltip.innerHTML = content;
+  tooltip.style.display = 'block';
+  tooltip.style.left = e.pageX + 15 + 'px';
+  tooltip.style.top = e.pageY + 15 + 'px';
+}
+
+// Hide tooltip
+function hideTooltip() {
+  tooltip.style.display = 'none';
+}
+
+// Log event
+function logEvent(message) {
+  const time = String(Math.floor(gameState.time / 60)).padStart(2, '0') + ':' + 
+               String(gameState.time % 60).padStart(2, '0');
+  const logEntry = document.createElement('div');
+  logEntry.textContent = `[${time}] ${message}`;
+  eventLog.appendChild(logEntry);
+  eventLog.scrollTop = eventLog.scrollHeight;
+  
+  // Keep only last 30 entries
+  while (eventLog.children.length > 30) {
+    eventLog.removeChild(eventLog.firstChild);
+  }
+}
+
+// Game loop
+function startGameLoop() {
+  setInterval(() => {
+    gameState.time++;
+    
+    // Random events
+    if (Math.random() < 0.01) {
+      triggerRandomEvent();
     }
     
-    function generateScenario() {
-      // High-stakes: Demand significantly outstrips supply
-      state.totalPower = 120; // Fixed low supply
-      state.sectors = [
-        { id: 'residential', name: 'Residential', demand: 70 + Math.floor(Math.random() * 31), allocated: 40 },
-        { id: 'hospitals', name: 'Hospitals', demand: 50 + Math.floor(Math.random() * 21), allocated: 40 },
-        { id: 'industrial', name: 'Industrial', demand: 60 + Math.floor(Math.random() * 41), allocated: 40 }
-      ];
-      // Auto-balance initial allocation to not exceed total power
-      const initialAllocation = state.sectors.reduce((sum, s) => sum + s.allocated, 0);
-      if (initialAllocation > state.totalPower) {
-        const scale = state.totalPower / initialAllocation * 0.98; // Use most of the power
-        state.sectors.forEach(s => s.allocated = Math.floor(s.allocated * scale));
+    // Update demand fluctuations
+    if (gameState.time % 30 === 0) {
+      updateDemandFluctuations();
+    }
+  }, 1000);
+}
+
+// Random events
+function triggerRandomEvent() {
+  const events = [
+    () => {
+      gameState.sectors.industrial.demand += 50;
+      logEvent('⚡ Industrial surge detected');
+    },
+    () => {
+      if (gameState.sectors.residential.active) {
+        gameState.sectors.residential.demand -= 25;
+        logEvent('🌙 Evening power-down');
       }
+    },
+    () => {
+      logEvent('🔧 Maintenance crew deployed');
     }
+  ];
+  
+  const randomEvent = events[Math.floor(Math.random() * events.length)];
+  randomEvent();
+  updateDisplay();
+}
+
+// Update demand fluctuations
+function updateDemandFluctuations() {
+  Object.keys(gameState.sectors).forEach(sectorName => {
+    const sector = gameState.sectors[sectorName];
+    const baseValues = { residential: 200, industrial: 300, medical: 150, commercial: 100 };
+    const fluctuation = (Math.random() - 0.5) * 0.2;
+    sector.demand = Math.round(baseValues[sectorName] * (1 + fluctuation));
+  });
+  updateDisplay();
+}
+
+// Generate efficiency report
+function generateEfficiencyReport() {
+  const sessionTime = Math.floor((Date.now() - gameState.performance.startTime) / 1000);
+  const avgEfficiency = gameState.performance.efficiencyHistory.length > 0 
+    ? Math.round(gameState.performance.efficiencyHistory.reduce((a, b) => a + b, 0) / gameState.performance.efficiencyHistory.length)
+    : 85;
+  
+  const totalDemand = calculateTotalDemand();
+  const currentEfficiency = calculateEfficiency();
+  const wastedPowerMWh = Math.round(gameState.performance.wastedPower / 60);
+  
+  // Calculate score
+  let score = 100;
+  score -= gameState.performance.emergencyShutdowns * 15;
+  score -= gameState.performance.criticalEvents * 10;
+  score -= Math.max(0, (100 - avgEfficiency) * 2);
+  score -= Math.min(20, wastedPowerMWh * 0.1);
+  score = Math.max(0, Math.round(score));
+  
+  // Determine grade
+  let grade = 'F';
+  if (score >= 90) grade = 'A+';
+  else if (score >= 85) grade = 'A';
+  else if (score >= 80) grade = 'B+';
+  else if (score >= 75) grade = 'B';
+  else if (score >= 70) grade = 'C+';
+  else if (score >= 65) grade = 'C';
+  else if (score >= 60) grade = 'D';
+  
+  const reportContent = `
+    <div class="bg-slate-800 rounded-lg p-8 mb-6">
+      <h3 class="text-3xl font-bold text-center mb-6">PERFORMANCE GRADE: <span class="text-5xl ${grade.startsWith('A') ? 'text-green-400' : grade.startsWith('B') ? 'text-blue-400' : grade.startsWith('C') ? 'text-yellow-400' : 'text-red-400'}">${grade}</span></h3>
+      <div class="text-center text-2xl">Overall Score: <span class="font-bold">${score}/100</span></div>
+    </div>
     
-    function startGame() {
-        state.isGameStarted = true;
-        ui.startModal.root.style.display = 'none';
-        generateScenario();
-        render();
-    }
+    <div class="grid grid-cols-2 gap-6 mb-6">
+      <div class="bg-slate-800 rounded-lg p-6">
+        <h4 class="font-bold text-blue-400 mb-4 text-xl">⏱️ Session Stats</h4>
+        <div class="text-lg space-y-2">
+          <div>Session Time: ${Math.floor(sessionTime / 60)}m ${sessionTime % 60}s</div>
+          <div>Power Adjustments: ${gameState.performance.powerAdjustments}</div>
+          <div>Sector Toggles: ${gameState.performance.sectorToggleCount}</div>
+        </div>
+      </div>
+      
+      <div class="bg-slate-800 rounded-lg p-6">
+        <h4 class="font-bold text-green-400 mb-4 text-xl">⚡ Efficiency Metrics</h4>
+        <div class="text-lg space-y-2">
+          <div>Current Efficiency: ${currentEfficiency}%</div>
+          <div>Average Efficiency: ${avgEfficiency}%</div>
+          <div>Wasted Power: ${wastedPowerMWh} MWh</div>
+        </div>
+      </div>
+    </div>
     
-    function endGame(outcome) {
-        state.isGameOver = true;
-        state.gameOutcome = outcome;
+    <div class="grid grid-cols-2 gap-6 mb-6">
+      <div class="bg-slate-800 rounded-lg p-6">
+        <h4 class="font-bold text-red-400 mb-4 text-xl">🚨 Critical Events</h4>
+        <div class="text-lg space-y-2">
+          <div>Emergency Shutdowns: ${gameState.performance.emergencyShutdowns}</div>
+          <div>Critical Events: ${gameState.performance.criticalEvents}</div>
+          <div>Current Status: ${getSystemStatus()}</div>
+        </div>
+      </div>
+      
+      <div class="bg-slate-800 rounded-lg p-6">
+        <h4 class="font-bold text-yellow-400 mb-4 text-xl">🏭 Current Load</h4>
+        <div class="text-lg space-y-2">
+          <div>Total Generation: ${gameState.powerGeneration} MW</div>
+          <div>Total Demand: ${totalDemand} MW</div>
+          <div>Load Factor: ${Math.round((totalDemand / gameState.powerGeneration) * 100)}%</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-slate-800 rounded-lg p-6">
+      <h4 class="font-bold text-purple-400 mb-4 text-xl">📋 Performance Analysis</h4>
+      <div class="text-lg space-y-3">
+        ${score >= 90 ? '<div class="text-green-400">🏆 Excellent! Optimal grid management with minimal waste.</div>' : ''}
+        ${score >= 75 && score < 90 ? '<div class="text-blue-400">👍 Good performance! Minor improvements possible.</div>' : ''}
+        ${score >= 60 && score < 75 ? '<div class="text-yellow-400">⚠️ Average performance. Reduce waste and emergencies.</div>' : ''}
+        ${score < 60 ? '<div class="text-red-400">❌ Poor performance. Focus on stability and efficiency.</div>' : ''}
         
-        if (outcome === 'win') {
-            ui.endModal.title.textContent = "Crisis Averted!";
-            ui.endModal.title.className = "text-4xl font-bold mb-4 text-green-400";
-            ui.endModal.message.textContent = `You've navigated the blackout successfully! The grid is stable, and the city appreciates your leadership. Your final approval rating is ${state.cityApproval}%.`;
-        } else {
-            ui.endModal.title.textContent = "You're Fired!";
-            ui.endModal.title.className = "text-4xl font-bold mb-4 text-red-400";
-            ui.endModal.message.textContent = `Your power distribution plan was a disaster. Public trust collapsed, and the city has removed you from your post. Final approval: ${state.cityApproval}%.`;
-        }
-        
-        ui.reportModal.root.style.display = 'none';
-        ui.gameUI.classList.add('opacity-0');
-        setTimeout(() => {
-            ui.gameUI.classList.add('hidden');
-            ui.endModal.root.style.display = 'flex';
-        }, 500);
-    }
-    
-    function resetGame() {
-        state = getInitialState();
-        ui.endModal.root.style.display = 'none';
-        ui.startModal.root.style.display = 'flex';
-        ui.gameUI.classList.remove('opacity-0');
-        ui.distributeBtn.style.display = 'block';
-    }
+        ${gameState.performance.emergencyShutdowns > 0 ? '<div class="text-red-300">• Minimize emergency shutdowns</div>' : ''}
+        ${wastedPowerMWh > 50 ? '<div class="text-yellow-300">• Reduce power waste</div>' : ''}
+        ${avgEfficiency < 80 ? '<div class="text-orange-300">• Improve load balancing</div>' : ''}
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('reportContent').innerHTML = reportContent;
+  document.getElementById('reportModal').classList.remove('hidden');
+  document.getElementById('reportModal').classList.add('flex');
+  
+  logEvent(`📊 Report generated - Grade: ${grade} (${score}/100)`);
+}
 
-    function initializeApp() {
-        try {
-            state.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            ui.distributeBtn.addEventListener('click', handleDistributePower);
-            ui.reportModal.closeBtn.addEventListener('click', closeReport);
-            ui.startModal.startBtn.addEventListener('click', startGame);
-            ui.endModal.playAgainBtn.addEventListener('click', resetGame);
-            attachIconListeners();
-            
-            state = getInitialState(); // Initialize state
-        } catch (e) {
-            console.error(e);
-            ui.startModal.root.innerHTML = `<div class="modal-content p-8 rounded-lg max-w-2xl w-full text-center"><h1 class="text-3xl text-red-500 font-bold">FATAL ERROR</h1><p class="mt-4">Could not connect to required AI services. Please check your connection or API configuration and refresh the page.</p></div>`;
-        }
-    }
+// Close report modal
+function closeReportModal() {
+  document.getElementById('reportModal').classList.add('hidden');
+  document.getElementById('reportModal').classList.remove('flex');
+}
 
-    // --- APP START ---
-    initializeApp();
-
-  </script>
-</body>
+// Start the game
+initGame();
+</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98870730d3d8ed45',t:'MTc1OTQzNzc2NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
