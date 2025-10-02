@@ -1,0 +1,5 @@
+{
+  "name": "Power Grid Director",
+  "description": "A simulation game where you act as a Power Grid Director during a city-wide blackout. Allocate limited electricity to Residential, Hospital, and Industrial sectors and see the consequences of your decisions in a dynamically generated news report.",
+  "requestFramePermissions": []
+}
